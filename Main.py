@@ -1,6 +1,7 @@
 import calendar
 from datetime import timedelta
 from colorama import Fore
+import joblib
 from matplotlib import dates
 from matplotlib.widgets import Slider
 import pandas as pd
@@ -17,167 +18,19 @@ def clean_data(data):
 def exploratory_data_analysis(data):
     print(data.describe())
     print(data.dtypes)
+    print(data.isnull().sum())
 
-    # Distribution of the data
-    sns.displot(data['LV ActivePower (kW)'])
+def check_wind_trends(data):
+    data = data[data.index.month == 1]
+    plt.plot(data.index, data['Wind Speed (m/s)'], label = data.index, linewidth = 1, color = 'red')
+    plt.show()
 
-    # Correlation matrix
-    corr_matrix = data.corr()
-    sns.heatmap(corr_matrix, annot=True)
 
 def optimize_dateformat(data):
     data["Date"] = pd.to_datetime(data['Date/Time'], format='%d %m %Y %H:%M')
     data.drop('Date/Time', axis = 1, inplace = True)
     data.set_index("Date", inplace = True)
     return data
-
-def anomaly_detector(data):
-    from sklearn.ensemble import IsolationForest
-
-    # Train the isolation forest algorithm
-    isolation_forest = IsolationForest(n_estimators=100, contamination=0.002)
-    isolation_forest.fit(data)
-
-    # Predict anomalies in the dataset
-    is_anomaly = isolation_forest.predict(data)
-    data['anomaly'] = is_anomaly
-    data['scores'] = isolation_forest.decision_function(data.drop('anomaly', axis=1))  # exclude the 'anomaly' column
-
-    # Print anomalies in the data
-    anomaly_data = data[data['anomaly'] == -1]
-    #pd.set_option("display.max_rows", None, "display.max_columns", None)
-
-    # Plot anomalies in the data
-    plt.plot(data[data.index.month == 1].index, data[data.index.month == 1]['LV ActivePower (kW)'], color='blue')
-    plt.plot(data[data.index.month == 1].index, data[data.index.month == 1]['Wind Speed (m/s)']*100, color='red')
-    plt.scatter(anomaly_data[anomaly_data.index.month == 1].index, anomaly_data[anomaly_data.index.month == 1]['LV ActivePower (kW)'], color='purple')
-    plt.scatter(anomaly_data[anomaly_data.index.month == 1].index, anomaly_data[anomaly_data.index.month == 1]['Wind Speed (m/s)'], color='green')
-    plt.show()
-
-def check_wind_trends(data):
-    data = data[data.index.month == 1]
-    plt.plot(data.index, data['Wind Speed (m/s)'], label = data.index, linewidth = 1, color = 'red')
-    pd.set_option("display.max_rows", None, "display.max_columns", None)
-    plt.show()
-
-def anomalies_Kw(data):
-    # calculate absolute difference between columns
-    data['diff_Kw'] = (data['LV ActivePower (kW)'] - data['Theoretical_Power_Curve (KWh)'])
-    # Calculate the mean and standard deviation of power_diff
-    mean_diff = data['diff_Kw'].mean()
-    std_diff = data['diff_Kw'].std()
-
-    # Calculate the threshold for the anomaly detection
-    pos_threshold = 200
-    neg_threshold = mean_diff - 3 * std_diff
-
-    # Create a new DataFrame with only the anomalies greater than the threshold
-    pos_anomalies_df = data[(data['diff_Kw'] > pos_threshold) & (data['LV ActivePower (kW)'] != 0)]
-    neg_anomalies_df = data[(data['diff_Kw'] < neg_threshold) & (data['LV ActivePower (kW)'] != 0)]
-    zero_anomalies_df = data[data['LV ActivePower (kW)'] == 0]
-
-    data["breakdown"] = 0
-    # for i in range(len(data)):
-    #     if (data['LV ActivePower (kW)'][i] == 0) & (data['Theoretical_Power_Curve (KWh)'][i] != 0):
-    #             print(f"\n{Fore.RED}anomaly:" + "\033[0m")
-    #             print(data.iloc[i])
-            #print(data.iloc[i])
-    minwind = data[(data['LV ActivePower (kW)'] == 0) & (data['Theoretical_Power_Curve (KWh)'] != 0) & (data['Wind Speed (m/s)'] > 4)]
-    print(minwind.describe())
- 
-    # breakdowns = zero_anomalies_df[zero_anomalies_df['Theoretical_Power_Curve (KWh)'] == 0]
-    # #print(breakdowns)
-    # breakdown_intervals = []
-    # for i in range(len(breakdowns)):
-    #     if i == 0:  # if first row, set the start time
-    #         start_time = breakdowns.index[i]
-    #     else:
-    #         time_diff = breakdowns.index[i] - breakdowns.index[i-1]
-    #         if time_diff == timedelta(minutes=10):  # if the time difference is 10 minutes, continue the interval
-    #             continue
-    #         else:  # if the time difference is not 10 minutes, end the current interval and start a new one
-    #             end_time = breakdowns.index[i-1]
-    #             breakdown_intervals.append((start_time, end_time))
-    #             start_time = breakdowns.index[i]
-    # # add the last interval to the list
-    # end_time = breakdowns.index[-1]
-    # breakdown_intervals.append((start_time, end_time))
-
-    # # create a DataFrame from the breakdown intervals list
-    # breakdowns_df = pd.DataFrame(breakdown_intervals, columns=['start_time', 'end_time'])
-    # # calculate the duration of each breakdown in minutes
-    # breakdowns_df['duration'] = (breakdowns_df['end_time'] - breakdowns_df['start_time']).dt.total_seconds() / 60
-    # # group the breakdowns by hour and calculate the average number of 10-minute breakdowns per hour
-    # breakdowns_df['hour'] = breakdowns_df['start_time'].dt.hour
-    # print(breakdowns_df)
-    # breakdowns_by_hour = breakdowns_df.groupby('hour').agg(avg_breakdowns=('duration', lambda x: len(x[x >= 10]) / (60 / 10)))
-
-    # # create a bar plot of the average number of breakdowns per hour
-    # breakdowns_by_hour.plot(kind='bar', y='avg_breakdowns', rot=0)
-    # plt.xlabel('Hour')
-    # plt.ylabel('Average number of 10-minute breakdowns')
-    # plt.show()
-
-
-
-
-
-    # for i in breakdown_intervals:
-    #     print(i)
-
-    # plt.plot(data['LV ActivePower (kW)'])
-    # for interval in breakdown_intervals:
-    #     plt.axvspan(interval[0], interval[1], color='red', alpha=0.3)
-    # plt.show()
-
-    # Plot the data
-    plt.figure(figsize=(10, 6))
-    plt.scatter(pos_anomalies_df.index, pos_anomalies_df['diff_Kw'], c='g', s=10)
-    plt.scatter(neg_anomalies_df.index, neg_anomalies_df['diff_Kw'], c='r', s=10)
-    plt.scatter(zero_anomalies_df.index, zero_anomalies_df['diff_Kw'], c='black', s=10)
-    plt.axhline(y=mean_diff, color='k', linestyle='--', linewidth=1)
-    plt.axhline(y=pos_threshold, color='g', linestyle='--', linewidth=1)
-    plt.axhline(y=neg_threshold, color='r', linestyle='--', linewidth=1)
-    plt.title('Difference between LV ActivePower (kW) and Theoretical_Power_Curve (KWh)')
-    plt.xlabel('Time')
-    plt.ylabel('Difference')
-    #plt.show()
-
-def lost_wind(data):
-    minwind = data[(data['LV ActivePower (kW)'] == 0) & (data['Theoretical_Power_Curve (KWh)'] != 0) & (data['Wind Speed (m/s)'] > 4)]
-    #plt.plot(data.index, data['Wind Speed (m/s)'], label = data.index, linewidth = 1, color = 'green')
-    fig, ax = plt.subplots(figsize=(10, 6))
-    mask = data.index.isin(minwind.index)
-    # Plot LV ActivePower (kW) with red line for periods where value is 0
-    plt.plot(data['Wind Speed (m/s)'].where(data['LV ActivePower (kW)']!=0), color='blue')
-    plt.plot(data['Wind Speed (m/s)'].where(data['LV ActivePower (kW)']==0), color='red')
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Wind Speed (m/s)')
-    ax.set_title('Wind Speed vs. Date')
-
-    #make scroll:
-    axcolor = 'lightgoldenrodyellow'
-    axpos = plt.axes([0.2, 0.1, 0.65, 0.03], facecolor=axcolor)
-    slider = Slider(axpos, 'Date', data.index[0].timestamp(), data.index[-1].timestamp(), valinit=data.index[0].timestamp())
-
-    def update(val):
-        pos = pd.Timestamp.fromtimestamp(slider.val, tz=data.index.tz)
-        ax.set_xlim(pos, pos + pd.Timedelta(hours=1))
-        # Format x-axis tick labels
-        date_format = dates.DateFormatter('%Y-%m-%d %H:%M')
-        ax.xaxis.set_major_formatter(date_format)
-        ax.xaxis.set_tick_params(rotation=45)
-        ax.xaxis_date()
-        plt.gcf().autofmt_xdate()
-        fig.canvas.draw_idle()
-
-    slider.on_changed(update)
-
-    plt.show()
-
-
-
-
 
 def set_dark_bg():
     mpl.style.use('dark_background')
@@ -221,8 +74,14 @@ def most_productive_periods(data, period = 'month'):
     
     # find the highest ratio
     best = ratio.idxmax()
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
+    print(ratio)
+    print(best)
+    print(avg_Kw)
+    print(avg_Wind_speed)
      # Add a vertical line at the highest product value
     ax1.axvline(x=best, color='red', linestyle='--')
+    ax1.text(best, avg_Kw.max(), 'Best ratio', rotation=20, va='bottom', color = 'red')
 
     fig.tight_layout()  # otherwise the right y-label is clipped. :/
     plt.show()
@@ -233,21 +92,15 @@ def detect_missing_data(data):
 
     # find the missing periods
     missing_periods = expected_periods.difference(data.index)
-    # print the number of missing periods and the missing periods themselves
-    #print(f"Number of missing periods: {len(missing_periods)}")
-    # #check Feb.:
-    # pd.set_option("display.max_rows", None, "display.max_columns", None)
-    # febr = data[data.index.month == 2]
-    # print(febr.describe())
-    # #check january:
-    # missing_records = 4464 - len(data[data.index.month == 1])
-    # missing_hours = missing_records / 6
-    # print(missing_hours)
 
    # count the number of missing periods for each month
     missing_counts = pd.Series(missing_periods.month).value_counts().sort_index()
 
     # create a list of missing counts for each month, converted to hours
+    # counts = [0] * len(month_names)
+    # for i, month in enumerate(month_names):
+    #     if month in missing_counts.index:
+    #         counts[i] = missing_counts[month] * 0.1667
     counts = [missing_counts[i] * 0.1667 if i in missing_counts.index else 0 for i in range(1, 13)]
 
     # create a dictionary of month names and their corresponding number
@@ -263,79 +116,132 @@ def detect_missing_data(data):
 def corr_between_windspeed_activepower_winddirection(data):
     corr_windspeed_power = data["Wind Speed (m/s)"].corr(data["LV ActivePower (kW)"])
     print(corr_windspeed_power)
-    corr_windspeed_power = data["Wind Direction (°)"].corr(data["LV ActivePower (kW)"])
-    print(corr_windspeed_power)
+    corr_winddirection_power = data["Wind Direction (°)"].corr(data["LV ActivePower (kW)"])
+    print(corr_winddirection_power)
+    corr_windspeed_winddirection = data["Wind Speed (m/s)"].corr(data["Wind Direction (°)"])
+    print(corr_windspeed_winddirection)
 
-    # Round wind direction values to nearest 10 degrees
+    # Round wind direction values to nearest 30 degrees
     data["Wind Direction (°) Rounded"] = (data["Wind Direction (°)"] // 30) * 30
-    
     # Group data by wind direction and calculate total active power
     grouped_data = data.groupby("Wind Direction (°) Rounded")["LV ActivePower (kW)"].sum()
-    
-    # Create pie chart
-    plt.pie(grouped_data.values, labels=grouped_data.index, startangle=90, counterclock=False)
-    plt.title("Total Active Power by Wind Direction (°)")
-    clearPlts()
-    #plt.show()
+    fig, ax = plt.subplots()
 
+    explode = [0.04] * len(grouped_data.index)
+    ax.pie(grouped_data.values, labels=grouped_data.index, startangle=90, counterclock=False, explode = explode)
+    plt.title("Total Active Power by Wind Direction (°)")
+    centre_circle = plt.Circle((0, 0), 0.4, fc='black')
+    ax.add_artist(centre_circle)
+    plt.savefig("Results/Total_Active_Power_by_Wind_Direction.png")
+    plt.show() 
+    clearPlts()
+
+    fig, ax = plt.subplots()
     # Group data by wind direction and calculate mean power and wind
     grouped_data = data.groupby("Wind Direction (°) Rounded")["LV ActivePower (kW)", "Wind Speed (m/s)"].mean()
     # Calculate efficiency for each direction
-    efficiency = grouped_data["LV ActivePower (kW)"] / grouped_data["Wind Speed (m/s)"]
 
+    efficiency = grouped_data["LV ActivePower (kW)"] / grouped_data["Wind Speed (m/s)"]
+    
     results = pd.DataFrame({"Efficiency": efficiency})
     print(results.sort_values(by="Efficiency", ascending=False))
+    explode = [0.1] * len(grouped_data.index)
+    for i in range(len(grouped_data.index)):
+        if efficiency.values[i] == efficiency.values.min():
+            explode[i] = 0.3
 
-    plt.pie(results["Efficiency"], labels=results.index, startangle=90, counterclock=False)
+    print(results.sort_values(by="Efficiency", ascending=False))
+
+    ax.pie(results["Efficiency"], labels=results.index, startangle=90, counterclock=False, explode = explode)
     plt.title("Efficiency by Wind Direction (°)")
+    centre_circle = plt.Circle((0, 0), 0.4, fc='black')
+    ax.add_artist(centre_circle)
+    plt.savefig("Results/Efficiency_by_Wind_Direction.png")
     plt.show()
 
 def avg_power_by_windspeed(data):
     # Group data by wind speed and calculate average active power
-    #uses the cut function to bin the wind speed values into 5 m/s intervals, and calculates the mean active power for each bin. 
-    grouped_data = data.groupby(pd.cut(data["Wind Speed (m/s)"], bins=range(0, 26, 5)))["LV ActivePower (kW)"].mean()
+    #uses the cut function to bin the wind speed values into 3 m/s intervals, and calculates the mean active power for each bin. 
+    grouped_data = data.groupby(pd.cut(data["Wind Speed (m/s)"], bins=range(0, 26, 3)))["LV ActivePower (kW)"].mean()
 
     # Plot bar chart
     plt.bar(grouped_data.index.astype(str), grouped_data.values)
     plt.xlabel("Wind Speed (m/s)")
     plt.ylabel("Average Power Production (kW)")
     plt.title("Average Power Production by Wind Speed")
+    plt.grid(color='darkgray')
+    # Set x-axis tick labels to display better format
+    x_ticks = [f'{bin.left}-{bin.right}' for bin in grouped_data.index]
+    plt.xticks(grouped_data.index.astype(str), x_ticks)
+    plt.savefig("Results/Average_Power_Production_by_Wind_Speed.png")
     plt.show()
 
 def plot_theoretical_vs_real_power(data):
     # Calculate average power production levels for different wind speeds
-    gruped_data = data.groupby(data["Wind Speed (m/s)"])["Theoretical_Power_Curve (KWh)", "LV ActivePower (kW)"].mean()
+    grouped_data = data.groupby(pd.cut(data["Wind Speed (m/s)"], bins=np.arange(0, 25.2, 0.5)))["Wind Speed (m/s)", "Theoretical_Power_Curve (KWh)", "LV ActivePower (kW)"].mean()
+    grouped_data.set_index("Wind Speed (m/s)", inplace=True)
+   
+
     fig, ax = plt.subplots()
-    #print(gruped_data)
-    ax.plot(gruped_data.index, gruped_data["Theoretical_Power_Curve (KWh)"], label="Theoretical Power")
+    ax.plot(grouped_data.index.astype(str), grouped_data["Theoretical_Power_Curve (KWh)"], label="Theoretical Power")
+    ax.plot(grouped_data.index.astype(str), grouped_data["LV ActivePower (kW)"], label="LV ActivePower (Avg.)", color='red')
+    
+    grouped_data['diff'] = grouped_data["LV ActivePower (kW)"] - grouped_data["Theoretical_Power_Curve (KWh)"]
 
-    gruped_data['diff'] = gruped_data["LV ActivePower (kW)"] - gruped_data["Theoretical_Power_Curve (KWh)"]
 
-    # Add scatter points for LV ActivePower (kW) values that differ from the theoretical power production curve
-    real_power = gruped_data["LV ActivePower (kW)"]
-    theoretical_power = gruped_data["Theoretical_Power_Curve (KWh)"]
-    diff = real_power - theoretical_power
-    print(diff)
-    ax.scatter(gruped_data.index[diff < 0], real_power[diff < 0], color='orange', label="Actual power < Theoretical power")
-    ax.scatter(gruped_data.index[diff > 0], real_power[diff > 0], color='green', label="Actual power > Theoretical power")
-    # Set plot title and axis labels
     ax.set_title("Theoretical vs Real Power Production")
     ax.set_xlabel("Wind Speed (m/s)")
     ax.set_ylabel("Power (kW)")
-
-    # Add legend and display plot
+    ax.set_xticks(np.arange(0, len(grouped_data.index), 3))  # set ticks at every 4th index
+    ax.set_xticklabels(np.round(grouped_data.index[::3].to_numpy(), 2).astype(str))  # set labels to wind speeds at every 4th index, rounded to 2 decimal places
     ax.legend()
+    
+    ax2 = ax.twinx()
+
+    # Calculate the number of hours with 0 LV ActivePower (kW) for each wind speed
+    data_with_0_power = data[(data["LV ActivePower (kW)"] == 0) & (data["Theoretical_Power_Curve (KWh)"] != 0)]
+    hours_with_0_power = data_with_0_power.groupby(pd.cut(data_with_0_power["Wind Speed (m/s)"], bins=np.arange(0, 26, 0.5)))["Wind Speed (m/s)"].count() * 0.1
+    grouped_data["Hours with 0 LV ActivePower (kW)"] = hours_with_0_power
+
+    ax2.plot(grouped_data.index.astype(str), grouped_data["Hours with 0 LV ActivePower (kW)"], label="Hours with 0 LV ActivePower (kW)", color='green')
+    
     plt.show()
+
+def predict(wind_speed, month, wind_direction=None, hour=None):
+    # Load the trained machine learning model
+    model = joblib.load("wind_turbine_model.pkl")
+
+    # Create a dictionary with the input features
+    input_dict = {
+        "wind_speed": wind_speed,
+        "month": month
+    }
+
+    # Add optional features if they are provided
+    if wind_direction is not None:
+        input_dict["wind_direction"] = wind_direction
+    if hour is not None:
+        input_dict["hour"] = hour
+
+    # Make the prediction using the loaded model and the input features
+    predicted_output = model.predict([input_dict])[0]
+
+    return predicted_output
+
+def train_model(data):
+    splits = data.randomSplit([0.8, 0.2])
+    train_df = splits[0]
+    test_df = splits[1]
 
 def main():
     #data = clean_data(pd.read_csv('wind_turbine_data.csv'))
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     set_dark_bg()
-    #detect_missing_data(data)
-    # most_productive_periods(data)
-    # most_productive_periods(data, 'hour')
-    #corr_between_windspeed_activepower_winddirection(data)
-    #avg_power_by_windspeed(data)
+    detect_missing_data(data)
+    most_productive_periods(data)
+    most_productive_periods(data, 'hour')
+    corr_between_windspeed_activepower_winddirection(data)
+    avg_power_by_windspeed(data)
     plot_theoretical_vs_real_power(data)
 
 main()

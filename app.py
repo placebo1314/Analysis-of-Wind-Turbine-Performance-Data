@@ -1,21 +1,22 @@
-from flask import Flask, render_template, request
-import pandas as pd
+from flask import Flask, request
+import joblib
 
 app = Flask(__name__)
 
-# Load the data into a pandas dataframe
-df = pd.read_csv('data.csv')
+# Load the trained machine learning model
+model = joblib.load('model.pkl')
 
-# Clean and preprocess the data
-# ...
+# Define the API endpoint
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Get the input parameters from the request
+    windspeed = request.form['windspeed']
+    direction = request.form['direction']
+    month = request.form['month']
+    hour = request.form['hour']
 
-# Implement the anomaly detection algorithm
-# ...
+    # Make a prediction using the machine learning model
+    prediction = model.predict([[windspeed, direction, month, hour]])
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/anomalies')
-def anomalies():
-    return df[df['anomaly'] == -1].to_html()
+    # Return the prediction as a JSON response
+    return {'prediction': prediction[0]}
