@@ -16,30 +16,33 @@ Used imports:
     import seaborn as sns
     from sklearn.linear_model import LinearRegression
 
-1. what is the quality of the database?
+1. **What is the quality of the database?**
     -First I checked how much missing data there is in the .csv. No one.
     -After, I used detect_missing_data(data) function to determine the number of missing data.
         Path: Results/Missing_hours.png
+
         ![Screenshot](Results/Missing_hours.png)
 
     Here we can see, that there are a few missing intervals, but not too many. it only exceeds 10% in January and November. So, I think I can work with this data.
     -Need to optimize the dataframe, so I fix it with the optimize_dateformat(data) function.
 
-2. Is there any difference between the periods for average power production ?
+2. **Is there any difference between the periods for average power production ?**
     - used function: most_productive_periods(data, period = 'month')
         Path: Results/Most_effective_months.png
+
         ![Screenshot](Results/Most_effective_months.png)
 
     This plot show to us many information. Avg. wind speed, Avg. production and the best ratio. 
     -Also we have this plot with the hours of the day:
         Path: Results/Most_effective_hours.png
+
         ![Screenshot](Results/Most_effective_hours.png)
 
     -So, the most productive periods(,above the avg.) are: 1.-3. and the 8.-11. months, and 15:00-06:00.
     -The best ratio: 17:00-23:00 [If we had more data (such as temperature, humidity, etc.) we could draw more conclusions about efficiency.]
     -If we want to carry out pre-planned maintenance, the best time is: I Jun., around 10 oclock
 
-3. Is there any correlation between the wind speed, wind direction and power production?
+3. **Is there any correlation between the wind speed, wind direction and power production?**
     -After we print the correlations
         wind speed-power: 0.9127742911275556
         wind direction-power: -0.0627017262406927
@@ -47,6 +50,7 @@ Used imports:
     As expected, there is a strong correlation between the wind speed and the pruduction (if higher the wind strength, then higher the energy produced too), in the other two comparisons, a negative correlation is visible, but not significant.
     -When we take a look on the next plot, we can detect, that most productive direction is between 30°-90° (more than the half of the productivity).
         Path: Results/Total_Active_Power_by_Wind_Direction.png
+
         ![Screenshot](Results/Total_Active_Power_by_Wind_Direction.png)
 
     -Efficiency ratios:
@@ -65,12 +69,18 @@ Used imports:
 
     -It's worst in the 90 degree range.
         Path: Results/Efficiency_by_Wind_Direction.png
+
         ![Screenshot](Results/Efficiency_by_Wind_Direction.png)
 
-4. What is the average power production level for different wind speeds?
+4. **What is the average power production level for different wind speeds?**
         Path: Results/Average_Power_Production_by_Wind_Speed.png
+
         ![Screenshot](Results/Average_Power_Production_by_Wind_Speed.png)
 
+5. **Does the manufacturer's theoritical power production curve fit well with the real production?**
+    - used function: plot_theoretical_vs_real_power(data)
+
+    ![Screenshot](Results/Theoretical_vs_real_power.png)
 
 
 About the functions:

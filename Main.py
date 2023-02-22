@@ -18,6 +18,7 @@ def clean_data(data):
 def exploratory_data_analysis(data):
     print(data.describe())
     print(data.dtypes)
+    print(data.shape)
     print(data.isnull().sum())
 
 def check_wind_trends(data):
@@ -203,45 +204,20 @@ def plot_theoretical_vs_real_power(data):
     hours_with_0_power = data_with_0_power.groupby(pd.cut(data_with_0_power["Wind Speed (m/s)"], bins=np.arange(0, 26, 0.5)))["Wind Speed (m/s)"].count() * 0.1
     grouped_data["Hours with 0 LV ActivePower (kW)"] = hours_with_0_power
 
-    ax2.plot(grouped_data.index.astype(str), grouped_data["Hours with 0 LV ActivePower (kW)"], label="Hours with 0 LV ActivePower (kW)", color='green')
-    
+    #ax2.plot(grouped_data.index.astype(str), grouped_data["Hours with 0 LV ActivePower (kW)"], label="Hours with 0 LV ActivePower (kW)", color='green')
+    plt.savefig("Results/Theoretical_vs_real_power.png")
     plt.show()
 
-def predict(wind_speed, month, wind_direction=None, hour=None):
-    # Load the trained machine learning model
-    model = joblib.load("wind_turbine_model.pkl")
-
-    # Create a dictionary with the input features
-    input_dict = {
-        "wind_speed": wind_speed,
-        "month": month
-    }
-
-    # Add optional features if they are provided
-    if wind_direction is not None:
-        input_dict["wind_direction"] = wind_direction
-    if hour is not None:
-        input_dict["hour"] = hour
-
-    # Make the prediction using the loaded model and the input features
-    predicted_output = model.predict([input_dict])[0]
-
-    return predicted_output
-
-def train_model(data):
-    splits = data.randomSplit([0.8, 0.2])
-    train_df = splits[0]
-    test_df = splits[1]
 
 def main():
     #data = clean_data(pd.read_csv('wind_turbine_data.csv'))
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     set_dark_bg()
-    detect_missing_data(data)
-    most_productive_periods(data)
-    most_productive_periods(data, 'hour')
-    corr_between_windspeed_activepower_winddirection(data)
-    avg_power_by_windspeed(data)
-    plot_theoretical_vs_real_power(data)
+    #detect_missing_data(data)
+    #most_productive_periods(data)
+    #most_productive_periods(data, 'hour')
+    #corr_between_windspeed_activepower_winddirection(data)
+    #avg_power_by_windspeed(data)
+    #plot_theoretical_vs_real_power(data)
 
 main()
