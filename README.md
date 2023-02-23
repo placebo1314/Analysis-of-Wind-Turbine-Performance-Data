@@ -1,7 +1,7 @@
 # Analysis of Wind Turbine Performance Data
 
 I found some common questions about wind turbines and I will answer them in this project. :)
-After that I compare 6 different Machine Learning Models and select the best one to a predict REST API.
+After that I compare 6 different Machine Learning Models and select the best one to a predict REST API .
 
 Used imports:
     import calendar
@@ -88,7 +88,7 @@ Used imports:
     No. :)
 
 
-**Compare few ML models, and select the best one. **
+**Compare few ML models, and select the best one.**
 
     - Predict.py
     - After I compare 6 models in 'train_model_pandas' function, I check again, with cross-validation technique in the  'train_model_pandas_with_crossvalidate' function
