@@ -6,7 +6,7 @@ from numpy import vectorize
 import pandas as pd
 from pyspark import SparkConf
 from pyspark.ml.feature import VectorAssembler
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.feature_selection import SequentialFeatureSelector
 from keras.models import Sequential
 from keras.layers import Dense
@@ -15,9 +15,9 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score, train_test_split, KFold
 from sklearn.tree import DecisionTreeRegressor
 from pyspark.sql import SparkSession
-from sklearn.neural_network import MLPRegressor
-
-
+from sklearn.metrics import mean_absolute_error, r2_score
+import warnings
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
 # pip install pyspark
 # pip install keras
 # pip install tensorflow
@@ -102,15 +102,19 @@ def create_neuraln_model(input_shape):
     return model
 
 def train_model_pandas(data, neuraln_model):
+    #remove spaces:
+    data = data.rename(columns=lambda x: x.strip().replace(' ', '_'))
     data['month'] = data.index.month
     data['hour'] = data.index.hour
+
+    #print(data.describe())
 
     # split data into training and testing sets
     train_df, test_df = train_test_split(data, test_size=0.2, random_state=42)
 
     # Define the input and output features
-    input_features = ['Wind Speed (m/s)', 'month', 'Wind Direction (°)', 'hour']
-    output_feature = 'LV ActivePower (kW)'
+    input_features = ['Wind_Speed_(m/s)', 'month', 'Wind_Direction_(°)', 'hour']
+    output_feature = 'LV_ActivePower_(kW)'
 
     # Prepare the training data
     train_X = train_df[input_features].values
@@ -118,20 +122,19 @@ def train_model_pandas(data, neuraln_model):
 
     # Train models
     rf_model = RandomForestRegressor()
-
     lin_model = LinearRegression()
-
     dec_model = DecisionTreeRegressor()
-
+    gb_model = GradientBoostingRegressor()
+    histgb_model = HistGradientBoostingRegressor()
     # Fit the models
     rf_model.fit(train_X, train_y)
-
     lin_model.fit(train_X, train_y)
-
     dec_model.fit(train_X, train_y)
+    gb_model.fit(train_X, train_y)
+    histgb_model.fit(train_X, train_y)
 
-    neuraln_model.fit(train_X, train_y, epochs=50, batch_size=32)
-    selector = SequentialFeatureSelector(estimator=neuraln_model)
+    neuraln_model.fit(train_X, train_y, epochs=65, batch_size=32)
+    #selector = SequentialFeatureSelector(estimator=neuraln_model)
 
     # Prepare the testing data
     test_X = test_df[input_features].values
@@ -149,19 +152,92 @@ def train_model_pandas(data, neuraln_model):
     dec_mse = mean_squared_error(test_df[output_feature].values, predictions_dec)
     print('Mean squared error of DecisionTreeRegressor:', dec_mse)
 
+    predictions_gb = gb_model.predict(test_X)
+    gb_mse = mean_squared_error(test_df[output_feature].values, predictions_gb)
+    print('Mean squared error of GradientBoostingRegressor:', gb_mse)
+
+    predictions_histgb = histgb_model.predict(test_X)
+    histgb_mse = mean_squared_error(test_df[output_feature].values, predictions_histgb)
+    print('Mean squared error of HistGradientBoostingRegressor:', histgb_mse)
+
     predictions_neuraln = neuraln_model.predict(test_X)
     neuraln_mse = mean_squared_error(test_df[output_feature].values, predictions_neuraln)
     print('Mean squared error of Neural Network:', neuraln_mse)
 
     # Save the trained model to disk
-    joblib.dump(rf_model, 'wind_turbine_model.pkl')
+    #joblib.dump(rf_model, 'wind_turbine_model.pkl')
     
+def train_model_pandas_with_crossvalidate(data):
+    data = data.rename(columns=lambda x: x.strip().replace(' ', '_'))
+    data['month'] = data.index.month
+    data['hour'] = data.index.hour
+
+    # split data into training and testing sets
+    train_df, test_df = train_test_split(data, test_size=0.2, random_state=42)
+
+    # Define the input and output features
+    input_features = ['Wind_Speed_(m/s)', 'month', 'Wind_Direction_(°)', 'hour']
+    output_feature = 'LV_ActivePower_(kW)'
+
+    # Prepare the training data
+    train_X = train_df[input_features].values
+    train_y = train_df[output_feature].values
+
+    rf_model = RandomForestRegressor()
+    lin_model = LinearRegression()
+    dec_model = DecisionTreeRegressor()
+    gb_model = GradientBoostingRegressor()
+    histgb_model = HistGradientBoostingRegressor()
+
+    models = [rf_model, lin_model, dec_model, gb_model, histgb_model]
+    model_names = ['Random Forest', 'Linear Regression', 'Decision Tree', 'Gradient Boosting Regressor', 'Hist Gradient Boosting Regressor']
+
+    # Evaluate models using cross-validation
+    for i, model in enumerate(models):
+        model.fit(train_X, train_y) # fitting the model before evaluating its performance
+        cv_results = cross_val_score(model, train_X, train_y, cv=10, scoring='neg_mean_squared_error')
+        mse_scores = -cv_results
+        print(model_names[i])
+        print('Mean squared error:', mse_scores.mean())
+        print('Standard deviation:', mse_scores.std())
+        mae = mean_absolute_error(train_y, model.predict(train_X))
+        r2 = r2_score(train_y, model.predict(train_X))
+        print(f"MAE: {mae:.2f}")
+        print(f"R-squared score: {r2:.2f}")
+        print()
+
+    #Fit only the best model
+    best_model = rf_model
+    best_mse = float('inf')
+    for model in models:
+        cv_results = cross_val_score(model, train_X, train_y, cv=10, scoring='neg_mean_squared_error')
+        mse_score = -cv_results.mean()
+        if mse_score < best_mse:
+            best_mse = mse_score
+            best_model = model
+
+    best_model.fit(train_X, train_y)
+
+    # Prepare the testing data
+    test_X = test_df[input_features].values
+
+    # Evaluate the best model on the testing data
+    predictions = best_model.predict(test_X)
+    mse = mean_squared_error(test_df[output_feature].values, predictions)
+    print('Mean squared error of', type(best_model).__name__, ':', mse)
+    mae = mean_absolute_error(test_df[output_feature], predictions)
+    r2 = r2_score(test_df[output_feature], predictions)
+    print(f"MAE of {type(best_model).__name__} on testing data: {mae:.2f}")
+    print(f"R-squared score of {type(best_model).__name__} on testing data: {r2:.2f}")
+
+    # # Save the trained model to disk
+    joblib.dump(best_model, 'wind_turbine_model.pkl')
+
 def main():
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     # Create the neural network model
-    neuraln_model = create_neuraln_model(input_shape=(4,))
-
-    # Train the models using the neural network
+    neuraln_model = create_neuraln_model((4,))
     train_model_pandas(data, neuraln_model)
+    train_model_pandas_with_crossvalidate(data)
     
 main()
