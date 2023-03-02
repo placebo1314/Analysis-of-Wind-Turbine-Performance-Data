@@ -2,7 +2,7 @@ import calendar
 from datetime import timedelta
 from colorama import Fore
 import joblib
-from matplotlib import dates
+from matplotlib import cm, dates
 from matplotlib.widgets import Slider
 import pandas as pd
 import matplotlib as mpl
@@ -24,6 +24,7 @@ def exploratory_data_analysis(data):
 def check_wind_trends(data):
     data = data[data.index.month == 1]
     plt.plot(data.index, data['Wind Speed (m/s)'], label = data.index, linewidth = 1, color = 'red')
+    plt.savefig("Results/wind_trends")
     plt.show()
 
 
@@ -56,7 +57,6 @@ def most_productive_periods(data, period = 'month'):
 
     fig, ax1 = plt.subplots()
 
-    #set_dark_bg()
     color = 'yellow'
     ax1.set_xlabel(x_label)
     ax1.set_ylabel('Average LV ActivePower (kW)', color = color)
@@ -166,7 +166,24 @@ def avg_power_by_windspeed(data):
     grouped_data = data.groupby(pd.cut(data["Wind Speed (m/s)"], bins=range(0, 26, 3)))["LV ActivePower (kW)"].mean()
 
     # Plot bar chart
-    plt.bar(grouped_data.index.astype(str), grouped_data.values)
+    def gradientbars(bars,ydata,cmap):
+            ax = bars[0].axes
+            lim = ax.get_xlim()+ax.get_ylim()
+            ax.axis(lim)
+                
+            for i, bar in enumerate(bars):
+                #bar.set_facecolor("none")
+                x,y = bar.get_xy()
+                h, w = bar.get_height(), bar.get_width()
+                grad = np.atleast_2d(np.linspace(0,1*h/max(ydata),256)).T
+
+                #zorder of 2 to get gradients above the facecolor, but below the bar outlines
+                ax.imshow(grad, extent=[x,x+w,y,y+h], origin='lower',aspect="auto",zorder=2, norm=cm.colors.NoNorm(vmin=0,vmax=1),cmap=cmap)
+    
+    my_bar = plt.bar(grouped_data.index.astype(str), grouped_data.values)
+    cmap = plt.get_cmap('cool')
+    gradientbars(my_bar, grouped_data.values, cmap)
+    #plt.bar(grouped_data.index.astype(str), grouped_data.values)
     plt.xlabel("Wind Speed (m/s)")
     plt.ylabel("Average Power Production (kW)")
     plt.title("Average Power Production by Wind Speed")
@@ -210,10 +227,10 @@ def plot_theoretical_vs_real_power(data):
 
 
 def main():
-    #data = clean_data(pd.read_csv('wind_turbine_data.csv'))
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     set_dark_bg()
     detect_missing_data(data)
+    check_wind_trends(data)
     most_productive_periods(data)
     most_productive_periods(data, 'hour')
     corr_between_windspeed_activepower_winddirection(data)

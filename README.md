@@ -3,6 +3,8 @@
 I found some common questions about wind turbines and I will answer them in this project. :)
 After that I compare 6 different Machine Learning Models and select the best one to a predict REST API .
 
+If you run the Main.py, it will show you all plots. But you can see all of them in this readme file. :)
+
 Used imports:
     import calendar
     from datetime import timedelta
