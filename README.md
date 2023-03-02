@@ -22,11 +22,12 @@ Used imports:
 1. **What is the quality of the database?**
     - First I checked how much missing data there is in the .csv. No one.
     - After, I used detect_missing_data(data) function to determine the number of missing data.
+
         Path: Results/Missing_hours.png
 
         ![Screenshot](Results/Missing_hours.png)
 
-    Here we can see, that there are a few missing intervals, but not too many. it only exceeds 10% in January and November. So, I think I can work with this data.
+    Here we can see, that there are a few missing intervals, but not too many. It only exceeds 10% in January and November. So, I think I can work with this data.
     -Need to optimize the dataframe, so I fix it with the optimize_dateformat(data) function.
 
 2. **Is there any difference between the periods for average power production ?**
