@@ -1,9 +1,7 @@
 import calendar
 from datetime import timedelta
 from colorama import Fore
-import joblib
-from matplotlib import cm, dates
-from matplotlib.widgets import Slider
+from matplotlib import cm
 import pandas as pd
 import matplotlib as mpl
 import numpy as np
@@ -129,10 +127,14 @@ def corr_between_windspeed_activepower_winddirection(data):
     fig, ax = plt.subplots()
 
     explode = [0.04] * len(grouped_data.index)
-    ax.pie(grouped_data.values, labels=grouped_data.index, startangle=90, counterclock=False, explode = explode)
+    labels = grouped_data.index.astype(str)
+    # Define a custom color palette
+    custom_palette = sns.color_palette("Paired", len(grouped_data.index))
+    ax.pie(grouped_data.values, startangle = 90, counterclock = False, explode = explode, colors=custom_palette)
     plt.title("Total Active Power by Wind Direction (°)")
     centre_circle = plt.Circle((0, 0), 0.4, fc='black')
     ax.add_artist(centre_circle)
+    plt.legend(labels = labels, fancybox = True, loc = 'center left', bbox_to_anchor = (0.93, 0.81), framealpha = 0.5, fontsize = 10, shadow = True, borderpad = 0.8)
     plt.savefig("Results/Total_Active_Power_by_Wind_Direction.png")
     plt.show() 
     clearPlts()
@@ -172,7 +174,6 @@ def avg_power_by_windspeed(data):
             ax.axis(lim)
                 
             for i, bar in enumerate(bars):
-                #bar.set_facecolor("none")
                 x,y = bar.get_xy()
                 h, w = bar.get_height(), bar.get_width()
                 grad = np.atleast_2d(np.linspace(0,1*h/max(ydata),256)).T
@@ -230,7 +231,7 @@ def main():
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     set_dark_bg()
     detect_missing_data(data)
-    check_wind_trends(data)
+    #check_wind_trends(data)
     most_productive_periods(data)
     most_productive_periods(data, 'hour')
     corr_between_windspeed_activepower_winddirection(data)

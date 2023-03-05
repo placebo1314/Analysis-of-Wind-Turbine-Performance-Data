@@ -1,7 +1,7 @@
 # Analysis of Wind Turbine Performance Data
 
 I found some common questions about wind turbines and I will answer them in this project. :)
-After that I compare 6 different Machine Learning Models and select the best one to a predict REST API .
+After that I compare 6 different Machine Learning Models and select the best one to a predict REST API .(Also compare with Cross-validation, to avoid the overfitting.)
 
 If you run the Main.py, it will show you all plots. But you can see all of them in this readme file. :)
 

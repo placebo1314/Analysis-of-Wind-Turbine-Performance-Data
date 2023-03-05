@@ -1,7 +1,6 @@
 import array
 import os
 import joblib
-import numpy as np
 from numpy import vectorize
 import pandas as pd
 from pyspark import SparkConf
@@ -18,9 +17,6 @@ from pyspark.sql import SparkSession
 from sklearn.metrics import mean_absolute_error, r2_score
 import warnings
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
-# pip install pyspark
-# pip install keras
-# pip install tensorflow
 
 from Main import optimize_dateformat
 
@@ -73,14 +69,14 @@ def train_model_spark(data):
     train_df = assembler.transform(train_df).select('features', output_feature)
     test_df = assembler.transform(test_df).select('features', output_feature)
 
-# Convert the Spark DataFrames to NumPy arrays
+    # Convert the Spark DataFrames to NumPy arrays
     train_X = array([vectorize.dense(x) for x in train_df.rdd.map(lambda x: x.features).collect()])
     train_y = array(train_df.select(output_feature).rdd.map(lambda x: x[0]).collect())
 
-# Train a random forest regressor model
+    # Train a random forest regressor model
     rf_model = RandomForestRegressor()
 
-# Fit the model to the training data
+    # Fit the model to the training data
     rf_model.fit(train_X, train_y)
 
     # Evaluate the model on the testing data
@@ -134,7 +130,6 @@ def train_model_pandas(data, neuraln_model):
     histgb_model.fit(train_X, train_y)
 
     neuraln_model.fit(train_X, train_y, epochs=65, batch_size=32)
-    #selector = SequentialFeatureSelector(estimator=neuraln_model)
 
     # Prepare the testing data
     test_X = test_df[input_features].values
@@ -236,8 +231,8 @@ def train_model_pandas_with_crossvalidate(data):
 def main():
     data = optimize_dateformat(pd.read_csv('wind_turbine_data.csv'))
     # Create the neural network model
-    neuraln_model = create_neuraln_model((4,))
-    train_model_pandas(data, neuraln_model)
+    #neuraln_model = create_neuraln_model((4,))
+    #train_model_pandas(data, neuraln_model)
     train_model_pandas_with_crossvalidate(data)
     
 main()
